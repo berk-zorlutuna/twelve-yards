@@ -505,3 +505,34 @@ Coordinates: x is metres right of the goal centre as the kicker sees it, y is me
 
 | Requirement | Verified by |
 |---|---|
+| SWR-001 | SVC-001, SVC-027, SVC-031 (manual) |
+| SWR-029 | SVC-026, SVC-027 |
+| SWR-031 | SVC-027 |
+| SWR-003 | SVC-003, SVC-005, SVC-018 |
+| SWR-004 | SVC-004, SVC-005, SVC-007 |
+| SWR-005 | SVC-004, SVC-006 |
+| SWR-022 | SVC-005, SVC-018 |
+| SWR-006 | SVC-008, SVC-009, SVC-012, SVC-030 (manual) |
+| SWR-007 | SVC-008 |
+| SWR-008 | SVC-010 |
+| SWR-009 | SVC-011 |
+| SWR-010 | SVC-013 |
+| SWR-002 | SVC-002 |
+| SWR-011 | SVC-014 |
+| SWR-012 | SVC-015 |
+| SWR-013 | SVC-016 |
+| SWR-014 | SVC-017 |
+| SWR-030 | SVC-014, SVC-028 |
+| SWR-015 | SVC-019 |
+| SWR-017 | SVC-021 |
+| SWR-016 | SVC-020, SVC-030 (manual) |
+| SWR-018 | SVC-003, SVC-005 |
+| SWR-019 | SVC-005, SVC-006 |
+| SWR-020 | SVC-003, SVC-005, SVC-006 |
+| SWR-021 | SVC-014, SVC-015, SVC-016, SVC-017 |
+| SWR-023 | SVC-003 |
+| SWR-024 | SVC-005, SVC-006, SVC-007 |
+| SWR-026 | SVC-023, SVC-030 (manual) |
+| SWR-025 | SVC-022, SVC-029 (manual) |
+| SWR-027 | SVC-024 |
+| SWR-028 | SVC-025 |
