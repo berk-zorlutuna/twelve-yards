@@ -1,0 +1,13 @@
+{
+  "name": "twelve-yards",
+  "version": "1.0.0",
+  "private": true,
+  "description": "3D penalty shootout game in a single HTML file",
+  "scripts": {
+    "verify": "node tests/run-verification.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "three": "0.128.0"
+  }
+}
