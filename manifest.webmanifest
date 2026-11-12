@@ -1,0 +1,16 @@
+{
+  "name": "Twelve Yards",
+  "short_name": "Twelve Yards",
+  "description": "3D penalty shootout: flick to shoot, steer the gloves to save.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0a1320",
+  "theme_color": "#0a1320",
+  "icons": [
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -31,7 +31,7 @@ Each requirement has an identifier, a statement and a rationale. All are mandato
 | ID | Requirement | Rationale |
 |---|---|---|
 | SYS-001 | The system shall present a penalty shootout between the player and the CPU in a real-time 3D view, playable in a web browser without installing anything. | Core purpose. |
-| SYS-013 | The system shall be delivered as one self-contained web page whose only external resources are the 3D rendering library and web fonts. It shall not store or transmit any player data. | Easy to host and share; nothing to consent to. |
+| SYS-013 | The system shall be delivered as one web page, with only an app manifest and icons beside it, whose only external resources are the 3D rendering library and web fonts. It shall not store or transmit any player data. | Easy to host and share; nothing to consent to. |
 
 ### 3.2 Match rules
 
@@ -61,6 +61,7 @@ Each requirement has an identifier, a statement and a rationale. All are mandato
 | ID | Requirement | Rationale |
 |---|---|---|
 | SYS-009 | The system shall be playable with a mouse or a touchscreen, on desktop and phone-sized screens, in portrait and landscape. | Reach. |
+| SYS-014 | The system shall be playable on Apple iPad by touch, in Safari and as a full-screen app added to the Home Screen, in both orientations, and shall keep working after the player switches to another app and back. | iPad is a target device. |
 | SYS-011 | Where the browser cannot provide 3D graphics, the system shall tell the player so instead of showing a blank or broken page. | Fail visibly. |
 | SYS-012 | Where the player has asked their device to reduce motion, the system shall remove decorative motion: camera shake, camera drift and animated banners. | Accessibility. |
 

@@ -62,10 +62,10 @@ const HELPERS = `window.__h = {
 };`;
 
 async function open(browser, opts = {}) {
-  const ctx = await browser.newContext({
+  const ctx = await browser.newContext(Object.assign({
     viewport: opts.viewport || { width: 1100, height: 650 },
     reducedMotion: opts.reducedMotion || 'no-preference',
-  });
+  }, opts.device || {}));
   const page = await ctx.newPage();
   page.errors = []; page.requests = [];
   page.on('pageerror', e => page.errors.push(e.message));
@@ -479,12 +479,12 @@ const CASES = [
   } },
 
 { id: 'SVC-023', title: 'Goal stays in view at each screen shape', verifies: ['SWR-026'], method: 'Test',
-  steps: ['For viewports 1100×650, 390×844 (phone portrait) and 844×390 (phone landscape): start a match, select the shooting camera and then the goalkeeping camera.',
+  steps: ['For viewports 1100×650, 390×844 (phone portrait), 844×390 (phone landscape), 1024×768 (iPad landscape) and 768×1024 (iPad portrait): start a match, select the shooting camera and then the goalkeeping camera.',
     'Project the four corners of the goal mouth to the screen in each view.', 'Measure the page width against the viewport width.'],
-  expected: ['All four goal corners lie inside the viewport in both views at all three sizes.', 'The page is not wider than the viewport (no horizontal scrolling).'],
+  expected: ['All four goal corners lie inside the viewport in both views at all five sizes.', 'The page is not wider than the viewport (no horizontal scrolling).'],
   async run(b) {
     const out = [];
-    for (const vp of [{ width: 1100, height: 650 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    for (const vp of [{ width: 1100, height: 650 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1024, height: 768 }, { width: 768, height: 1024 }]) {
       const p = await open(b, { viewport: vp }); await startPaused(p);
       const r = await p.evaluate(() => { const t = __twelveYards, res = {};
         for (const m of ['shoot', 'keep']) { t.setCam(m, true); t.tick(0); t.camera.updateMatrixWorld(true);
@@ -582,6 +582,94 @@ const CASES = [
 { id: 'SVC-031', title: 'Frame rate on target devices', verifies: ['SWR-001'], method: 'Manual',
   steps: ['Play on a mid-range phone and a laptop with integrated graphics; observe frame rate with the browser\'s performance tools.'],
   expected: ['Play stays at or above 30 frames per second.'] },
+
+{ id: 'SVC-032', title: 'iPad emulation: touch play without browser gestures', verifies: ['SWR-026', 'SWR-032'], method: 'Test',
+  steps: ['Open the page with the browser emulating an iPad Pro 11 (touch, iPad user agent, 2× pixel ratio), in portrait (834×1194) and landscape (1194×834).',
+    'Tap "Kick off" and wait for the aim state.', 'Dispatch a touchmove and a contextmenu event on the canvas and a gesturestart event on the document; read whether each was cancelled.',
+    'Dispatch a touch-type flick; read the game state.', 'Read the page size, the canvas touch-action and the goal-corner positions in both camera views.'],
+  expected: ['No script errors.', 'touchmove, contextmenu and gesturestart are all cancelled, so Safari cannot scroll, show the long-press menu or pinch-zoom during play.',
+    'The flick shoots.', 'The canvas has touch-action "none"; the page is not larger than the viewport in either direction.', 'All four goal corners are inside the viewport in both views.'],
+  async run(b) {
+    const { devices } = require('playwright'); const out = [];
+    for (const name of ['iPad Pro 11', 'iPad Pro 11 landscape']) {
+      const p = await open(b, { device: devices[name] });
+      await p.tap('#go'); await p.waitForFunction(() => __twelveYards.S.state === 'aim', null, { timeout: 20000 });
+      const r = await p.evaluate(() => { const c = document.getElementById('gl'), W = innerWidth, H = innerHeight, t = __twelveYards;
+        const fire = (target, type) => { const e = new Event(type, { cancelable: true, bubbles: true }); target.dispatchEvent(e); return e.defaultPrevented; };
+        const tm = fire(c, 'touchmove'), cm = fire(c, 'contextmenu'), gs = fire(document, 'gesturestart');
+        const ev = (type, x, y) => c.dispatchEvent(new PointerEvent(type, { pointerId: 5, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: true }));
+        ev('pointerdown', W / 2, H * 0.75); ev('pointermove', W / 2 + 20, H * 0.62); ev('pointermove', W / 2 + 40, H * 0.5); ev('pointerup', W / 2 + 40, H * 0.5);
+        const state = t.S.state; t.pause(true); const view = {};
+        for (const m of ['shoot', 'keep']) { t.setCam(m, true); t.tick(0); t.camera.updateMatrixWorld(true);
+          view[m] = Math.max(...[[-3.66, 0], [3.66, 0], [-3.66, 2.44], [3.66, 2.44]].map(q => { const v = new THREE.Vector3(q[0], q[1], 0).project(t.camera); return Math.max(Math.abs(v.x), Math.abs(v.y)); })); }
+        return { W, H, tm, cm, gs, state, view, ta: getComputedStyle(c).touchAction, sw: document.documentElement.scrollWidth, sh: document.documentElement.scrollHeight,
+          cw: c.clientWidth, ch: c.clientHeight }; });
+      ok(p.errors.length === 0, name + ' errors: ' + p.errors.join('; '));
+      ok(r.tm && r.cm && r.gs, `${name}: cancelled touchmove ${r.tm}, contextmenu ${r.cm}, gesturestart ${r.gs}`);
+      ok(r.state === 'flight', name + ' state ' + r.state); ok(r.ta === 'none', 'touch-action ' + r.ta);
+      ok(r.sw <= r.W && r.sh <= r.H && r.cw === r.W && r.ch === r.H, `${name}: page ${r.sw}×${r.sh}, canvas ${r.cw}×${r.ch}, viewport ${r.W}×${r.H}`);
+      ok(r.view.shoot < 1 && r.view.keep < 1, `${name}: corners ${r.view.shoot}/${r.view.keep}`);
+      out.push(`${r.W}×${r.H}: gestures cancelled, flick→${r.state}, corners ${f2(r.view.shoot)}/${f2(r.view.keep)}`);
+      await p.context().close();
+    }
+    return out.join('; ') + '; 0 errors; no overflow';
+  } },
+
+{ id: 'SVC-033', title: 'Home Screen installation metadata (inspection)', verifies: ['SWR-033'], method: 'Inspection (automated)',
+  steps: ['Read the head of index.html.', 'Parse manifest.webmanifest.', 'Read the pixel size of each icon file it names.'],
+  expected: ['The viewport declares viewport-fit=cover, maximum-scale=1 and user-scalable=no.',
+    'The page declares apple-mobile-web-app-capable "yes", a status-bar style, an app title, a manifest link and a 180×180 apple-touch-icon.',
+    'The manifest has the name "Twelve Yards", display "fullscreen", a start URL, and 180×180 and 512×512 PNG icons that exist at those sizes.',
+    'The HUD and start screen are inset by the device safe areas.'],
+  async run() {
+    const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'); const head = src.slice(0, src.indexOf('</head>'));
+    const vp = (head.match(/<meta name="viewport" content="([^"]+)"/) || [])[1] || '';
+    ok(/viewport-fit=cover/.test(vp) && /maximum-scale=1/.test(vp) && /user-scalable=no/.test(vp), 'viewport ' + vp);
+    ok(/<meta name="apple-mobile-web-app-capable" content="yes">/.test(head), 'apple-mobile-web-app-capable');
+    ok(/apple-mobile-web-app-status-bar-style/.test(head) && /<meta name="apple-mobile-web-app-title" content="Twelve Yards">/.test(head), 'status bar / title');
+    ok(/<link rel="manifest" href="manifest\.webmanifest">/.test(head) && /<link rel="apple-touch-icon" href="icons\/icon-180\.png">/.test(head), 'links');
+    ok(/#hud\{[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/.test(head) && /#overlay\{[^}]*safe-area-inset-bottom/.test(head), 'safe-area insets');
+    const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8'));
+    ok(m.name === 'Twelve Yards' && m.display === 'fullscreen' && !!m.start_url, 'manifest ' + JSON.stringify(m));
+    const sizes = m.icons.map(i => { const buf = fs.readFileSync(path.join(ROOT, i.src));
+      ok(buf.slice(1, 4).toString() === 'PNG', i.src + ' is not a PNG'); const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20);
+      ok(`${w}x${h}` === i.sizes, `${i.src} is ${w}x${h}, manifest says ${i.sizes}`); return `${w}×${h}`; });
+    ok(sizes.includes('180×180') && sizes.includes('512×512'), 'icon sizes ' + sizes.join(', '));
+    return `viewport "${vp}"; Apple web-app tags present; manifest display ${m.display}; icons ${sizes.join(', ')}`;
+  } },
+
+{ id: 'SVC-034', title: 'Recovery after backgrounding', verifies: ['SWR-034'], method: 'Test',
+  steps: ['Start a match. Suspend the audio context, as iPadOS does when the app goes to the background.', 'Touch the pitch once; read the audio context state.',
+    'Sample the rendered picture low on the canvas, a quarter of the way across.', 'Force the WebGL context to be lost, then restored, as iPadOS does under memory pressure.',
+    'Sample the picture again and check the game clock is advancing.'],
+  expected: ['Audio state goes suspended → running after the touch.', 'Before the loss the sampled pixel is pitch green.',
+    'After restoration the context is valid, the game clock advances and the sampled pixel is pitch green again.', 'No script errors.'],
+  async run(b) {
+    const p = await open(b); await startLive(p);
+    const s1 = await p.evaluate(async () => { await __twelveYards.suspendAudio(); return __twelveYards.audio().state; });
+    await p.mouse.move(500, 300); await p.mouse.down(); await p.mouse.up();
+    await p.waitForFunction(() => __twelveYards.audio().state === 'running', null, { timeout: 8000 });
+    const r = await p.evaluate(async () => { const t = __twelveYards, c = document.getElementById('gl'), wait = ms => new Promise(r => setTimeout(r, ms));
+      const sample = () => new Promise(res => requestAnimationFrame(() => { const k = document.createElement('canvas'); k.width = c.width; k.height = c.height;
+        const x = k.getContext('2d'); x.drawImage(c, 0, 0); const d = x.getImageData(c.width >> 2, Math.round(c.height * 0.92), 1, 1).data; res([d[0], d[1], d[2]]); }));
+      const before = await sample(); const gl = t.renderer.getContext(), ext = gl.getExtension('WEBGL_lose_context');
+      ext.loseContext(); await wait(400); const lost = gl.isContextLost(); ext.restoreContext(); await wait(1200);
+      const c0 = t.clock; await wait(400); const after = await sample();
+      return { before, after, lost, valid: !gl.isContextLost(), advancing: t.clock > c0 }; });
+    const green = q => q[1] > 60 && q[1] > q[0] * 1.3 && q[1] > q[2] * 1.3;
+    ok(s1 === 'suspended', 'audio state after suspend ' + s1); ok(green(r.before), 'pixel before loss ' + r.before);
+    ok(r.lost && r.valid && r.advancing, JSON.stringify(r)); ok(green(r.after), 'pixel after restore ' + r.after);
+    ok(p.errors.length === 0, 'errors: ' + p.errors.join('; '));
+    return `audio ${s1}→running after touch; pixel before rgb(${r.before}), after context loss and restore rgb(${r.after}); clock advancing; 0 errors`;
+  } },
+
+{ id: 'SVC-035', title: 'Play on a physical iPad', verifies: ['SWR-026', 'SWR-032', 'SWR-033', 'SWR-034'], method: 'Manual',
+  steps: ['Open the hosted game in Safari on an iPad, in portrait and landscape. Play a full match by touch.',
+    'Try to pinch, double-tap and long-press on the pitch, and to drag the page.', 'Use Share → Add to Home Screen, open the game from its icon and play a match.',
+    'Switch to another app and back during a match.'],
+  expected: ['Flicks shoot and the gloves follow the finger; the page never zooms, scrolls or shows a menu.',
+    'From the Home Screen the game opens full screen with its own icon and name, and the HUD is clear of the status bar and home indicator.',
+    'After returning from another app the picture is intact and sound returns on the next touch.'] },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -650,6 +738,7 @@ function writeResultsDoc(results, env) {
       env.three.startsWith('local') ? 'three.js was served from the local npm copy of version 0.128.0 instead of cdnjs, because the test host cannot reach cdnjs. The file content is the same release; the CDN delivery itself was not exercised.' : 'three.js was loaded from cdnjs.',
       'Web fonts could not be downloaded on the test host, so the fallback fonts were in use. Text layout with the intended fonts was not checked.',
       'Touch input was checked with emulated touch-type pointer events only (SVC-012). No physical phone was used (SVC-030).',
+      'iPad behaviour was checked in Chromium emulating an iPad (screen size, touch, user agent), not in Safari and not on an iPad (SVC-032, SVC-035). Safari\'s own handling of zoom, scrolling, the Home Screen and backgrounding was not exercised.',
       'Sound output was checked only as far as the audio context and master gain (SVC-022). Nobody listened to it (SVC-029).',
       'Frame rate was not measured (SVC-031).',
       'Visual appearance was not verified by these cases.',

@@ -376,13 +376,13 @@ Coordinates: x is metres right of the goal centre as the kicker sees it, y is me
 
 **Steps**
 
-1. For viewports 1100×650, 390×844 (phone portrait) and 844×390 (phone landscape): start a match, select the shooting camera and then the goalkeeping camera.
+1. For viewports 1100×650, 390×844 (phone portrait), 844×390 (phone landscape), 1024×768 (iPad landscape) and 768×1024 (iPad portrait): start a match, select the shooting camera and then the goalkeeping camera.
 2. Project the four corners of the goal mouth to the screen in each view.
 3. Measure the page width against the viewport width.
 
 **Expected result**
 
-- All four goal corners lie inside the viewport in both views at all three sizes.
+- All four goal corners lie inside the viewport in both views at all five sizes.
 - The page is not wider than the viewport (no horizontal scrolling).
 
 ### SVC-024 3D unavailable
@@ -501,6 +501,83 @@ Coordinates: x is metres right of the goal centre as the kicker sees it, y is me
 
 - Play stays at or above 30 frames per second.
 
+### SVC-032 iPad emulation: touch play without browser gestures
+
+- Verifies: SWR-026, SWR-032
+- Method: Test
+
+**Steps**
+
+1. Open the page with the browser emulating an iPad Pro 11 (touch, iPad user agent, 2× pixel ratio), in portrait (834×1194) and landscape (1194×834).
+2. Tap "Kick off" and wait for the aim state.
+3. Dispatch a touchmove and a contextmenu event on the canvas and a gesturestart event on the document; read whether each was cancelled.
+4. Dispatch a touch-type flick; read the game state.
+5. Read the page size, the canvas touch-action and the goal-corner positions in both camera views.
+
+**Expected result**
+
+- No script errors.
+- touchmove, contextmenu and gesturestart are all cancelled, so Safari cannot scroll, show the long-press menu or pinch-zoom during play.
+- The flick shoots.
+- The canvas has touch-action "none"; the page is not larger than the viewport in either direction.
+- All four goal corners are inside the viewport in both views.
+
+### SVC-033 Home Screen installation metadata (inspection)
+
+- Verifies: SWR-033
+- Method: Inspection (automated)
+
+**Steps**
+
+1. Read the head of index.html.
+2. Parse manifest.webmanifest.
+3. Read the pixel size of each icon file it names.
+
+**Expected result**
+
+- The viewport declares viewport-fit=cover, maximum-scale=1 and user-scalable=no.
+- The page declares apple-mobile-web-app-capable "yes", a status-bar style, an app title, a manifest link and a 180×180 apple-touch-icon.
+- The manifest has the name "Twelve Yards", display "fullscreen", a start URL, and 180×180 and 512×512 PNG icons that exist at those sizes.
+- The HUD and start screen are inset by the device safe areas.
+
+### SVC-034 Recovery after backgrounding
+
+- Verifies: SWR-034
+- Method: Test
+
+**Steps**
+
+1. Start a match. Suspend the audio context, as iPadOS does when the app goes to the background.
+2. Touch the pitch once; read the audio context state.
+3. Sample the rendered picture low on the canvas, a quarter of the way across.
+4. Force the WebGL context to be lost, then restored, as iPadOS does under memory pressure.
+5. Sample the picture again and check the game clock is advancing.
+
+**Expected result**
+
+- Audio state goes suspended → running after the touch.
+- Before the loss the sampled pixel is pitch green.
+- After restoration the context is valid, the game clock advances and the sampled pixel is pitch green again.
+- No script errors.
+
+### SVC-035 Play on a physical iPad
+
+- Verifies: SWR-026, SWR-032, SWR-033, SWR-034
+- Method: Manual
+
+**Steps**
+
+1. Open the hosted game in Safari on an iPad, in portrait and landscape. Play a full match by touch.
+2. Try to pinch, double-tap and long-press on the pitch, and to drag the page.
+3. Use Share → Add to Home Screen, open the game from its icon and play a match.
+4. Switch to another app and back during a match.
+
+**Expected result**
+
+- Flicks shoot and the gloves follow the finger; the page never zooms, scrolls or shows a menu.
+- From the Home Screen the game opens full screen with its own icon and name, and the HUD is clear of the status bar and home indicator.
+- After returning from another app the picture is intact and sound returns on the next touch.
+
 ## Coverage of software requirements
 
 | Requirement | Verified by |
@@ -532,7 +609,10 @@ Coordinates: x is metres right of the goal centre as the kicker sees it, y is me
 | SWR-021 | SVC-014, SVC-015, SVC-016, SVC-017 |
 | SWR-023 | SVC-003 |
 | SWR-024 | SVC-005, SVC-006, SVC-007 |
-| SWR-026 | SVC-023, SVC-030 (manual) |
+| SWR-026 | SVC-023, SVC-030 (manual), SVC-032, SVC-035 (manual) |
+| SWR-032 | SVC-032, SVC-035 (manual) |
+| SWR-033 | SVC-033, SVC-035 (manual) |
+| SWR-034 | SVC-034, SVC-035 (manual) |
 | SWR-025 | SVC-022, SVC-029 (manual) |
 | SWR-027 | SVC-024 |
 | SWR-028 | SVC-025 |

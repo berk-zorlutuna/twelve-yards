@@ -2,7 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Twelve Yards">
+<meta name="theme-color" content="#0a1320">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-180.png">
+<style>
+/* standalone page: pin the body so iPad Safari cannot rubber-band it, and keep the HUD clear of the status bar and home indicator */
+body{position:fixed;inset:0;width:100%}
+#hud{padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+#overlay{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+</style>
 </head>
 <body style="margin:0">
 <title>Twelve Yards</title>
@@ -24,7 +38,8 @@
 }
 [hidden]{display:none!important}
 html,body{height:100%}
-body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow:hidden;-webkit-user-select:none;user-select:none}
+body{background:var(--night);color:var(--chalk);font-family:var(--body);overflow:hidden;-webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;overscroll-behavior:none}
 #stage{position:relative;height:100%;overflow:hidden}
 #gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 .hud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;
@@ -556,6 +571,7 @@ function gloveInput(e){
   GL.T.x=clamp(o.x+d.x*t,-3.9,3.9);GL.T.y=clamp(o.y+d.y*t,0.2,2.75);
 }
 canvas.addEventListener('pointerdown',e=>{
+  if(ac&&ac.state!=='running')ac.resume().catch(()=>{});   // iPad suspends audio when the app is backgrounded
   if(S.state==='aim'){
     drag={x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,t0:0,t1:0,len:0,pts:[]};
     try{canvas.setPointerCapture(e.pointerId);}catch(_){}
@@ -577,6 +593,11 @@ function endDrag(shoot){
 }
 canvas.addEventListener('pointerup',()=>endDrag(true));
 canvas.addEventListener('pointercancel',()=>endDrag(false));
+/* touch devices: keep Safari's scroll, pinch-zoom and long-press menu out of the way of play */
+canvas.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('visibilitychange',()=>{last=performance.now();if(!document.hidden&&ac&&ac.state==='suspended')ac.resume().catch(()=>{});});
 
 /* ---------- loop ---------- */
 function update(dt){
@@ -633,7 +654,8 @@ requestAnimationFrame(frame);
 window.__twelveYards={S,fl,K,GL,ball,vel,cam,camera,reticle,figures:{keeper:keeper.g,kicker:kicker.g,gloves},consts:{G,GW,GH,HW,BR,SPOT,KZ},
   decided,launch,playerShoot,cpuShoot,resetBall,stepBall,beginTurn,setCam,poseKeeper,
   tick(dt){clock+=dt;update(dt);},pause(v){paused=!!v;},clearTimers(){timers=[];},
-  get clock(){return clock;},audio(){return {started:!!ac,gain:master?master.gain.value:null};}};
+  get clock(){return clock;},audio(){return {started:!!ac,gain:master?master.gain.value:null,state:ac?ac.state:null};},
+  suspendAudio(){return ac?ac.suspend():null;},renderer};
 })();
 </script>
 </body>

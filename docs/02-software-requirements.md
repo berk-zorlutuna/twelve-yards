@@ -20,7 +20,7 @@ These requirements specify the software in `index.html`. Each one refines a syst
 | ID | Requirement | Refines |
 |---|---|---|
 | SWR-001 | The software shall render the scene with WebGL through three.js release r128 on a canvas that fills the viewport, at a device pixel ratio of at most 2. | SYS-001, SYS-013 |
-| SWR-029 | The software shall be one HTML file. Its only external references shall be the three.js r128 script on cdnjs.cloudflare.com and a Google Fonts stylesheet. It shall not use browser storage or cookies, and shall make no network requests of its own. | SYS-013 |
+| SWR-029 | The game shall be one HTML file; the only other delivered files shall be the web app manifest and its icons. Its only external references shall be the three.js r128 script on cdnjs.cloudflare.com and a Google Fonts stylesheet. It shall not use browser storage or cookies, and shall make no network requests of its own. | SYS-013 |
 | SWR-031 | The software shall expose one global object, `window.__twelveYards`, giving read access to game state and the ability to pause the frame loop and step the simulation, for automated verification. It shall define no other globals. | SYS-013 |
 
 ### 3.2 Match flow
@@ -76,9 +76,17 @@ These requirements specify the software in `index.html`. Each one refines a syst
 | SWR-021 | After each kick a banner shall state the result. On the player's kicks: "Goal!", "Saved", "Off the post", "Off the bar", "Wide" or "Over the bar", with the launch speed in km/h (m/s × 3.6, rounded). On the CPU's kicks: "They score", "What a save!", or the woodwork or miss description with "They miss". | SYS-007 |
 | SWR-023 | On load the software shall show a start screen with the title, the rules, the control for each role and a "Kick off" button, with the HUD hidden. Pressing the button shall hide the start screen, show the HUD and start a match. | SYS-010 |
 | SWR-024 | When a match is decided the software shall show "You win" or "You lose", the final score, whether it went to sudden death, and a "Play again" button that starts a new match from 0–0. | SYS-010 |
-| SWR-026 | In both the shooting view and the goalkeeping view the whole goal mouth shall be visible at 1100×650, 390×844 and 844×390 viewports, and the page shall never be wider than the viewport. | SYS-009 |
+| SWR-026 | In both the shooting view and the goalkeeping view the whole goal mouth shall be visible at 1100×650, 390×844, 844×390, 1024×768 and 768×1024 viewports, and the page shall never be wider than the viewport. | SYS-009, SYS-014 |
 
-### 3.8 Sound, failure and motion
+### 3.8 iPad
+
+| ID | Requirement | Refines |
+|---|---|---|
+| SWR-032 | Browser gestures shall not interrupt play on touch devices. The page shall declare a viewport that cannot be scaled; the canvas shall have `touch-action: none` and shall cancel `touchmove` and `contextmenu` events; the document shall cancel `gesturestart` events; and the page shall never be larger than the viewport in either direction. | SYS-014 |
+| SWR-033 | The page shall be installable to the iPad Home Screen as a full-screen app: it shall declare `apple-mobile-web-app-capable`, a status-bar style, an app title, a 180×180 `apple-touch-icon`, and a web app manifest with the name "Twelve Yards", `display: fullscreen`, a start URL and 180×180 and 512×512 PNG icons. The HUD and start screen shall be inset by the device's safe areas. | SYS-014 |
+| SWR-034 | After the app has been in the background the game shall recover: a suspended audio context shall be resumed on the player's next touch, and after a lost WebGL context is restored the scene shall be drawn again and the game shall continue. | SYS-014 |
+
+### 3.9 Sound, failure and motion
 
 | ID | Requirement | Refines |
 |---|---|---|
@@ -103,6 +111,7 @@ These requirements specify the software in `index.html`. Each one refines a syst
 | SYS-011 | SWR-027 |
 | SYS-012 | SWR-028 |
 | SYS-013 | SWR-001, SWR-029, SWR-031 |
+| SYS-014 | SWR-026, SWR-032, SWR-033, SWR-034 |
 
 ## 5. Known gaps
 
